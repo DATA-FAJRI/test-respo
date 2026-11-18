@@ -1,5 +1,5 @@
 import type { ListingData, Variant } from "@/lib/schema";
-import { euro, frenchDate, type AdapterResult, type SiteAdapter } from "./types";
+import { euro, frenchDate, splitAddress, type AdapterResult, type SiteAdapter } from "./types";
 import { genericAdapter } from "./generic";
 
 /**
@@ -25,6 +25,21 @@ export const studapartAdapter: SiteAdapter = {
       data[k] = v as ListingData[K];
       confidence[k as string] = c;
     };
+
+    // Texte collé (pas de JSON-LD) : titre et adresse lus dans le texte
+    if (!data.titre) {
+      const t = /Logement en résidence\s*\n+\s*([^\n]{4,120})/.exec(text)?.[1]?.trim();
+      if (t) set("titre", t, 0.85);
+    }
+    if (!data.adresse) {
+      const a = /\nLocalisation\s*\n+\s*([^\n]*\b\d{5}\b[^\n]*)/.exec(text)?.[1]?.trim();
+      if (a) {
+        set("adresse", a, 0.9);
+        const { code_postal, ville } = splitAddress(a);
+        set("code_postal", code_postal, 0.9);
+        set("ville", ville, 0.9);
+      }
+    }
 
     const isResidence = /\/residence\//.test(page.url) || /Logement en résidence/i.test(text);
     if (isResidence) set("type_offre", "residence_etudiante", 0.9);

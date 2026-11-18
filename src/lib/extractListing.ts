@@ -2,13 +2,14 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { ListingDataSchema, emptyListingData, type ExtractResponse, type ListingData } from "@/lib/schema";
+import { ListingDataSchema, type ExtractResponse, type ListingData } from "@/lib/schema";
 import { fetchPage, normalizeUrl } from "@/lib/scrape/fetchPage";
 import { compactJson, extractStructured, type StructuredData } from "@/lib/scrape/structured";
 import { pickAdapter } from "@/lib/scrape/adapters";
 import { genericAdapter } from "@/lib/scrape/adapters/generic";
 import type { AdapterResult } from "@/lib/scrape/adapters/types";
 import { extractWithLlm, llmAvailable } from "@/lib/llm/extract";
+import { mergeResults } from "@/lib/merge";
 
 const EXTRACT_CACHE_DIR = path.join(process.cwd(), ".cache", "extractions");
 
@@ -25,29 +26,6 @@ async function cached<T>(key: string, fn: () => Promise<T>, force = false): Prom
   await fs.mkdir(EXTRACT_CACHE_DIR, { recursive: true });
   await fs.writeFile(file, JSON.stringify(value));
   return { value, hit: false };
-}
-
-const isEmpty = (v: unknown) => v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0);
-
-/**
- * Fusionne le résultat déterministe de l'adaptateur et celui du LLM.
- * L'adaptateur l'emporte (lecture exacte) ; les divergences sont signalées.
- */
-export function mergeResults(adapter: AdapterResult, llm: ListingData | null): ListingData {
-  const base: ListingData = llm ? structuredClone(llm) : emptyListingData();
-  const confiance: Record<string, number | null> = { ...(llm?.confiance ?? {}) };
-  const notes = [...(llm?.notes ?? [])];
-  for (const [k, v] of Object.entries(adapter.data)) {
-    if (isEmpty(v) || k === "notes" || k === "confiance") continue;
-    const current = (base as Record<string, unknown>)[k];
-    if (llm && !isEmpty(current) && typeof v !== "object" && String(current).toLowerCase() !== String(v).toLowerCase()) {
-      notes.push(`« ${k} » : le parseur lit ${v}, le LLM proposait ${current}. Valeur du parseur retenue.`);
-    }
-    (base as Record<string, unknown>)[k] = v;
-    confiance[k] = adapter.confidence[k] ?? 0.9;
-  }
-  notes.unshift(...adapter.notes.filter((n) => !notes.includes(n)));
-  return ListingDataSchema.parse({ ...base, confiance, notes });
 }
 
 export async function extractFromUrl(rawUrl: string, opts: { force?: boolean } = {}): Promise<ExtractResponse> {

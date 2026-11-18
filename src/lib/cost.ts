@@ -191,7 +191,7 @@ export function computeCost(listing: Listing, settings: Settings): CostResult {
   if (d.dpe === "g") alerts.push({ level: "danger", code: "dpe", message: "DPE G : logement considéré comme indécent, interdit à la location depuis 2025 (passoire thermique)." });
   else if (d.dpe === "f") alerts.push({ level: "warning", code: "dpe", message: "DPE F : passoire thermique (interdit à la location en 2028), factures de chauffage élevées." });
 
-  if (surface != null && loyerAffiche != null && surface > 0) {
+  if (surface != null && loyerAffiche != null && surface > 0 && (d.code_postal || d.ville)) {
     const ref = marketRentPerM2(d.code_postal, d.ville, surface);
     const m2 = loyerAffiche / surface;
     if (m2 < ref * 0.55)

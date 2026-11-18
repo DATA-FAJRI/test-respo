@@ -50,6 +50,19 @@ npm test                     # tests du calcul, des alertes, de robots.txt et du
 
 Sans clé API, l'app fonctionne avec les adaptateurs seuls. Il faut alors compléter la fiche à la main.
 
+## Version claude.ai (Artifact)
+
+`artifact/` contient une version de LocCompare qui tourne directement sur claude.ai. Elle utilise le même moteur que l'app Next.js : schéma Zod, adaptateurs, prompt d'extraction, calcul du coût et alertes (`artifact/core.ts`).
+
+- On colle le **texte** de l'annonce (Ctrl+A, Ctrl+C sur la page) et, si possible, son URL. Une page publiée sur claude.ai ne peut pas ouvrir d'autres sites : l'adaptateur Studapart/Leboncoin lit le texte collé, puis Claude complète via la capacité `sample`.
+- Les annonces sont enregistrées dans l'espace privé de chaque utilisateur (`data/users/<id>/state`), ou dans le navigateur si l'utilisateur n'est pas connecté.
+- Les exports CSV, Excel et JSON passent par la capacité `downloads`.
+- Distances : comme le géocodage n'est pas accessible depuis la page, les coordonnées se collent à la main.
+
+```bash
+npm run build:artifact   # → artifact/dist/loccompare.html (fichier publié sur claude.ai)
+```
+
 ## Respect des sites
 
 Usage personnel uniquement. L'app respecte robots.txt, envoie au plus 1 requête toutes les 5 s par site, ne charge ni images ni médias, et met en cache 24 h les pages et les extractions (`.cache/`). En cas de captcha, l'app propose l'ajout par copier-coller.
