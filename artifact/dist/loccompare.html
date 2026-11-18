@@ -351,11 +351,11 @@ Renvoie uniquement l'objet JSON.`].join(`
   }
   function snapshot() { return { v: 1, listings: state.listings, settings: state.settings }; }
   function loadLocal() {
-    try { const raw = localStorage.getItem(LS_KEY); if (raw) applyStored(JSON.parse(raw)); } catch (e) { /* stockage indisponible */ }
+    try { const raw = localStorage.getItem(LS_KEY); if (raw) applyStored(JSON.parse(raw)); } catch { /* stockage indisponible */ }
   }
   let saveTimer = null, saving = false, pending = false;
   function persist() {
-    try { localStorage.setItem(LS_KEY, JSON.stringify(snapshot())); } catch (e) { /* ignoré */ }
+    try { localStorage.setItem(LS_KEY, JSON.stringify(snapshot())); } catch { /* ignoré */ }
     if (!stateDoc) return;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(flush, 700);
@@ -364,7 +364,7 @@ Renvoie uniquement l'objet JSON.`].join(`
     if (saving) { pending = true; return; }
     saving = true;
     try { await stateDoc.set(snapshot()); }
-    catch (e) { state.storage = "local"; renderStatus(); toast("Sauvegarde distante impossible : annonces gardées dans ce navigateur."); stateDoc = null; }
+    catch { state.storage = "local"; renderStatus(); toast("Sauvegarde distante impossible : annonces gardées dans ce navigateur."); stateDoc = null; }
     saving = false;
     if (pending) { pending = false; flush(); }
   }
@@ -391,7 +391,7 @@ Renvoie uniquement l'objet JSON.`].join(`
           else if (state.listings.length) await stateDoc.set(snapshot()); // migre ce qui était dans le navigateur
           state.storage = "db";
         }
-      } catch (e) { stateDoc = null; }
+      } catch { stateDoc = null; }
     }
     renderAll();
   }
